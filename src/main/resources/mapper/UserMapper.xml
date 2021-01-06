@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dingli.shop.dao.UserDao">
+    <resultMap id="UserMap" type="UserVO">
+        <id property="id" column="mg_id" />
+        <result property="username" column="mg_name" />
+        <result property="rid" column="role_id" />
+        <result property="mobile" column="mg_mobile" />
+        <result property="email" column="mg_email" />
+    </resultMap>
+    <select id="findUser" parameterType="User" resultMap="UserMap">
+        select * from sp_manager where mg_name=#{username} and mg_pwd=#{password}
+    </select>
+</mapper>
+

@@ -1,0 +1,81 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+           http://www.springframework.org/schema/context
+           http://www.springframework.org/schema/context/spring-context-4.0.xsd
+           http://www.springframework.org/schema/tx
+           http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+           http://www.springframework.org/schema/aop
+           http://www.springframework.org/schema/aop/spring-aop-4.0.xsd">
+
+
+    <!--读取数据库的配置文件  -->
+    <context:property-placeholder location="classpath:db.properties"/>
+    <!--配置数据源，连接池   参数值是从db.properties文件中读取 -->
+    <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+        <property name="user" value="${mysql.username}"/>
+        <property name="driverClass" value="${mysql.driver}"/>
+        <property name="jdbcUrl" value="${mysql.url}"/>
+        <property name="password" value="${mysql.password}"/>
+        <!--配置数据库连接池的初始连接数、最小链接数、获取连接数、最大连接数、最大空闲时间-->
+        <property name="initialPoolSize" value="${mysql.initialSize}"/>
+        <property name="minPoolSize" value="${mysql.minIdle}"/>
+        <property name="acquireIncrement" value="${mysql.maxActive}"/>
+        <property name="maxPoolSize" value="${mysql.maxActive}"/>
+        <property name="maxIdleTime" value="${mysql.maxWait}"/>
+    </bean>
+
+
+    <!--配置MyBatis的工厂类 ，生成MyBatis框架中的工厂对象-->
+    <bean id="sf" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <!--    工厂类需要注入数据库连接池的属性        -->
+        <property name="dataSource" ref="dataSource"/>
+        <!--     注入mybatis框架的配置文件 classpath：表示项目的根目录  -->
+        <property name="configLocation" value="classpath:mybatis/mybatis-config.xml"/>
+        <!--    假如上面的mybatis的配置文件中已经扫描Mapper文件，就可以不用本属性注入。        -->
+        <property name="mapperLocations" value="classpath:mapper/*.xml"/>
+    </bean>
+    <!--扫描DAO层对象的bean-->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.dingli.shop.dao"/>
+        <property name="sqlSessionFactoryBeanName" value="sf"/>
+    </bean>
+
+    <!-- 扫描service层的包，使用注解形式   -->
+    <context:component-scan base-package="com.dingli.shop.biz"/>
+
+    <!--   配置声明式事务   dataSource:报错无关紧要  -->
+    <!--配置事务管理器，用于管理事务，这里使用的声明式事务编程，并且使用注解方式 -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <!-- 配置通知型事务管理器   -->
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+
+    <!--    配置通知型事务管理的方式    -->
+    <tx:advice id="txAdvice">
+        <tx:attributes>
+            <!-- 约定优于编码 设置事务详情 -->
+
+            <!--   配置查询方法的开头 ：大家都约定好查询方法都是以get/find/select开头            -->
+            <tx:method name="get*" read-only="true" propagation="SUPPORTS"/>
+            <tx:method name="find*" read-only="true" propagation="SUPPORTS"/>
+            <tx:method name="select*" read-only="true" propagation="SUPPORTS"/>
+            <!--   其他的增删改方法的开头使用如下的开头             -->
+            <tx:method name="add*"/>
+            <tx:method name="save*"/>
+            <tx:method name="insert*"/>
+            <tx:method name="delete*"/>
+            <tx:method name="update*"/>
+        </tx:attributes>
+    </tx:advice>
+
+    <aop:config>
+        <aop:advisor advice-ref="txAdvice" pointcut="execution(* com.dingli.shop.biz.impl.*.*(..))"/>
+    </aop:config>
+</beans>
